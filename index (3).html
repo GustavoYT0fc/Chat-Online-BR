@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Online Do Gustavo</title>
+    <title>Chat Online do Gustavo</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
         }
+
         .container {
             width: 80%;
             margin: 0 auto;
@@ -17,89 +18,277 @@
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        #loginArea, #registerArea {
+            display: none;
+        }
+
         #chatArea {
+            display: none;
             margin-top: 20px;
         }
+
         #messages {
             border: 1px solid #ccc;
             padding: 10px;
             height: 300px;
             overflow-y: scroll;
+            margin-bottom: 10px;
         }
+
         #messageInput {
             width: 70%;
             padding: 10px;
         }
-        #sendButton,
-        #translateButton {
+
+        #sendButton {
             padding: 10px 20px;
             margin-left: 10px;
+        }
+
+        .user-info {
+            display: inline-block;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .search-bar {
+            margin-top: 10px;
+        }
+
+        #userList {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 150px;
+            overflow-y: scroll;
+        }
+
+        .chat-box {
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Chat Online</h1>
-        <select id="gameSelect">
-            <option value="">Selecione um Jogo</option>
-            <option value="1">League of Legends</option>
-            <option value="2">Valorant</option>
-            <option value="3">Counter-Strike</option>
-            <option value="4">Fortnite</option>
-            <option value="5">Rocket League</option>
-            <option value="6">Conversa</option>
-            <option value="7">ARK</option>
-        </select>
+        <h1>Chat Online do Gustavo</h1>
+
+        <div id="loginArea">
+            <h2>Login</h2>
+            <input type="text" id="loginUsername" placeholder="Nome de Usuário">
+            <input type="password" id="loginPassword" placeholder="Senha">
+            <button id="loginButton">Entrar</button>
+            <p>Não tem uma conta? <a href="#" id="goToRegister">Crie uma conta</a></p>
+        </div>
+
+        <div id="registerArea">
+            <h2>Criar Conta</h2>
+            <input type="text" id="registerUsername" placeholder="Nome de Usuário">
+            <input type="text" id="registerName" placeholder="Seu Nome">
+            <input type="number" id="registerAge" placeholder="Idade">
+            <input type="password" id="registerPassword" placeholder="Senha">
+            <input type="text" id="registerBio" placeholder="Bio (opcional)">
+            <button id="registerButton">Criar Conta</button>
+            <p>Já tem uma conta? <a href="#" id="goToLogin">Fazer login</a></p>
+        </div>
+
         <div id="chatArea">
+            <h2>Usuários</h2>
+            <div id="userList"></div>
+            <select id="gameSelect">
+                <option value="">Selecione um Jogo</option>
+                <option value="1">Minecraft</option>
+                <option value="2">Valorant</option>
+                <option value="3">Roblox</option>
+                <option value="4">Fortnite</option>
+                <option value="5">Rocket League</option>
+                <option value="6">Conversa</option>
+                <option value="7">ARK</option>
+            </select>
+
+            <h3>Conversa com: <span id="currentChatUser">Ninguém</span></h3>
             <div id="messages"></div>
             <input type="text" id="messageInput" placeholder="Digite uma mensagem...">
             <button id="sendButton">Enviar</button>
-            <button id="translateButton">Traduzir Última Mensagem</button>
+
+            <div class="search-bar">
+                <input type="text" id="searchUser" placeholder="Procurar usuário...">
+                <button id="searchButton">Procurar</button>
+            </div>
         </div>
     </div>
+
     <script>
-        const gameSelect = document.getElementById('gameSelect');
+        const loginArea = document.getElementById('loginArea');
+        const registerArea = document.getElementById('registerArea');
+        const chatArea = document.getElementById('chatArea');
+        const loginButton = document.getElementById('loginButton');
+        const registerButton = document.getElementById('registerButton');
+        const goToRegister = document.getElementById('goToRegister');
+        const goToLogin = document.getElementById('goToLogin');
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
-        const translateButton = document.getElementById('translateButton');
+        const searchButton = document.getElementById('searchButton');
+        const gameSelect = document.getElementById('gameSelect');
+        const userList = document.getElementById('userList');
+        const currentChatUser = document.getElementById('currentChatUser');
 
-        // Send message
+        let users = [];
+        let loggedInUser = null;
+        let chatGroups = {
+            1: {},
+            2: {},
+            3: {},
+            4: {},
+            5: {},
+            6: {},
+            7: {}
+        };
+
+        function switchToLogin() {
+            loginArea.style.display = 'block';
+            registerArea.style.display = 'none';
+            chatArea.style.display = 'none';
+        }
+
+        function switchToRegister() {
+            loginArea.style.display = 'none';
+            registerArea.style.display = 'block';
+            chatArea.style.display = 'none';
+        }
+
+        function switchToChat() {
+            loginArea.style.display = 'none';
+            registerArea.style.display = 'none';
+            chatArea.style.display = 'block';
+            messagesDiv.innerHTML = ''; // Limpa as mensagens quando muda de jogo
+            loadUserList();
+        }
+
+        function loadUserList() {
+            userList.innerHTML = ''; // Limpa a lista de usuários
+            users.forEach(user => {
+                if (user.username !== loggedInUser.username) { // Não mostra o próprio usuário
+                    const userElement = document.createElement('div');
+                    userElement.textContent = user.username;
+                    userElement.style.cursor = 'pointer';
+                    userElement.addEventListener('click', () => {
+                        startChatWithUser(user);
+                    });
+                    userList.appendChild(userElement);
+                }
+            });
+        }
+
+        function startChatWithUser(user) {
+            currentChatUser.textContent = user.username;
+            messagesDiv.innerHTML = ''; // Limpa as mensagens anteriores
+            const selectedGame = gameSelect.value;
+
+            // Carrega mensagens desse usuário no grupo selecionado
+            if (chatGroups[selectedGame][user.username]) {
+                chatGroups[selectedGame][user.username].forEach(chatMessage => {
+                    const messageElement = document.createElement('div');
+                    messageElement.innerHTML = `<span class="user-info">${chatMessage.user}:</span> ${chatMessage.message}`;
+                    messagesDiv.appendChild(messageElement);
+                });
+            }
+        }
+
+        goToRegister.addEventListener('click', () => {
+            switchToRegister();
+        });
+
+        goToLogin.addEventListener('click', () => {
+            switchToLogin();
+        });
+
+        registerButton.addEventListener('click', () => {
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const name = document.getElementById('registerName').value;
+            const age = document.getElementById('registerAge').value;
+            const bio = document.getElementById('registerBio').value;
+
+            if (username && password) {
+                // Verifica se o usuário já existe
+                if (users.find(u => u.username === username)) {
+                    alert("Nome de usuário já existe. Tente outro.");
+                    return;
+                }
+
+                users.push({ username, password, name, age, bio });
+                alert("Conta criada com sucesso!");
+                switchToLogin();
+            } else {
+                alert("Por favor, preencha todos os campos obrigatórios.");
+            }
+        });
+
+        loginButton.addEventListener('click', () => {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            loggedInUser = users.find(u => u.username === username && u.password === password);
+
+            if (loggedInUser) {
+                alert(`Bem-vindo, ${loggedInUser.username}!`);
+                switchToChat();
+            } else {
+                alert("Nome de usuário ou senha incorretos.");
+            }
+        });
+
         sendButton.addEventListener('click', () => {
             const selectedGame = gameSelect.value;
             const message = messageInput.value;
 
-            if (selectedGame && message) {
-                const messageElement = document.createElement('div');
-                messageElement.textContent = `[Jogo: ${selectedGame}] ${message}`;
-                messagesDiv.appendChild(messageElement);
+            if (selectedGame && message && loggedInUser) {
+                // Cria o objeto de mensagem se não existir
+                if (!chatGroups[selectedGame][loggedInUser.username]) {
+                    chatGroups[selectedGame][loggedInUser.username] = [];
+                }
+
+                // Adiciona a mensagem ao grupo correspondente
+                if (!chatGroups[selectedGame][currentChatUser.textContent]) {
+                    chatGroups[selectedGame][currentChatUser.textContent] = [];
+                }
+
+                chatGroups[selectedGame][currentChatUser.textContent].push({ user: loggedInUser.username, message: message });
+
+                // Atualiza a exibição das mensagens
+                messagesDiv.innerHTML = ''; // Limpa as mensagens anteriores
+                chatGroups[selectedGame][currentChatUser.textContent].forEach(chatMessage => {
+                    const messageElement = document.createElement('div');
+                    messageElement.innerHTML = `<span class="user-info">${chatMessage.user}:</span> ${chatMessage.message}`;
+                    messagesDiv.appendChild(messageElement);
+                });
+
                 messageInput.value = '';
             } else {
                 alert("Por favor, selecione um jogo e digite uma mensagem.");
             }
         });
 
-        // Translate the last message
-        translateButton.addEventListener('click', async () => {
-            const lastMessage = messagesDiv.lastChild?.textContent;
-            if (lastMessage) {
-                const translatedMessage = await translateText(lastMessage);
-                const translationElement = document.createElement('div');
-                translationElement.textContent = `Tradução: ${translatedMessage}`;
-                messagesDiv.appendChild(translationElement);
+        // Busca usuário
+        searchButton.addEventListener('click', () => {
+            const searchTerm = document.getElementById('searchUser').value.toLowerCase();
+            const foundUser = users.find(user => user.username.toLowerCase() === searchTerm);
+            if (foundUser) {
+                alert(`Usuário encontrado: ${foundUser.username}`);
+                // Aqui você poderia adicionar a lógica para iniciar uma conversa com o usuário encontrado.
             } else {
-                alert("Não há mensagens para traduzir.");
+                alert("Usuário não encontrado.");
             }
         });
 
-        // Function to translate text using a translation API (this is a placeholder)
-        async function translateText(text) {
-            // Replace with actual API call
-            const response = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=pt|en');
-            const data = await response.json();
-            return data.responseData.translatedText || "Tradução não disponível.";
-        }
+        // Inicializa a área de login
+        switchToLogin();
     </script>
 </body>
 </html>
-
